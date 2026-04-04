@@ -1,0 +1,30 @@
+{
+  "name": "groq-discord-bot",
+  "version": "1.0.0",
+  "designerTag": "This bot is designed by Shreyansh Tripathi.",
+  "description": "Intelligent Discord bot powered by Groq API with task management",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test:groq": "node scripts/test-groq.js",
+    "test:search": "node scripts/test-search.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "groq",
+    "ai",
+    "task-manager"
+  ],
+  "author": "Shreyansh Tripathi",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.8",
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

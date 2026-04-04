@@ -1,0 +1,8 @@
+# This bot is designed by Shreyansh Tripathi.
+node_modules/
+.env
+data/
+*.log
+logs/*.log
+!logs/.gitkeep
+.DS_Store
