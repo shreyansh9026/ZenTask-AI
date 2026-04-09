@@ -1,35 +1,37 @@
-# 💠 ZenTask AI - Intelligent Discord Productivity Bot
+# 💠 ZenTask AI - Intelligent Discord Productivity Ecosystem
 > Built with ❤️ by Shreyansh Tripathi
 
-ZenTask AI is a state-of-the-art Discord bot that combines **Intelligent Task Management**, **Personalized Notes**, and **AI Vision** into one seamless experience. Powered by Groq and Llama 3, it helps you stay organized through natural conversations and interactive UI.
+ZenTask AI is a professional Discord bot that combines **Intelligent Task Management**, **Personalized Notes**, and **Multi-Modal AI Vision & Voice** into one seamless experience. Powered by Groq (Llama 3) and MongoDB Atlas, it handles everything from your daily to-dos to advanced server analytics.
 
 ---
 
 ## ✨ Key Features
 
 ### 🚀 Smart Productivity
-- **Interactive Task List**: Manage your cada with buttons and select menus. No more typing IDs.
-- **Natural Language Reminders**: Say `"Remind me in 10 mins to join the meeting"` and get notified.
-- **Personalized Notes**: Save quick ideas and notes that follow you everywhere.
+- **Interactive Task List**: Manage your tasks with buttons and select menus. No more typing IDs—just click to mark as "Done."
+- **Shared Project Lists**: Collaborative server-wide task tracking with `/task shared-list`.
+- **Natural Language Reminders**: Say `"Remind me in 10 mins to join the meeting"` and get notified instantly.
+- **Smart Categorization**: AI automatically tags your tasks (e.g., #Work, #Personal, #Digital) using semantic analysis.
 
 ### 🧠 Advanced AI & Vision
-- **Llama 3 Powered Q&A**: Context-aware AI that remembers your previous questions.
-- **Smart OCR (`/ocr-tasks`)**: Take a photo of a physical list and magically convert it into digital tasks.
-- **Image Analysis**: Upload screenshots or photos and ask questions about them using Llama 3.2 Vision.
+- **Voice-to-Task Intelligence**: record an audio note on mobile or desktop, and the bot will transcribe and add it to your tasks automatically.
+- **AI Vision Core**: Upload screenshots or photos and ask questions using Llama 3.2 11B Vision.
+- **Smart OCR (`/ocr-tasks`)**: Take a photo of a physical list (handwritten or typed) and magically convert it into digital tasks.
+- **Context-Aware Q&A**: Persistent chat memory that remembers your last 10 interactions.
 
-### 🌐 Management Suite
-- **Interactive Dashboard**: A premium web interface (`http://localhost:3000`) for real-time analytics and task tracking.
-- **User Personalization**: Set your own timezone, language, and preferred AI model using `/settings`.
-- **Global Search**: Search the web for real-time information with AI-powered summaries.
+### 🛡️ Admin & Analytics
+- **AI Safety Audit**: Use `/safety` to analyze channel sentiment, detect toxicity, and audit recently chat vibes.
+- **Interactive Dashboard**: A premium web interface for viewing real-time productivity stats at `http://localhost:3000`.
+- **Global Search**: Search the web with **Advanced Depth** for live sports scores, news, and factual data.
 
 ---
 
 ## 🛠️ Tech Stack
 - **Engine**: Node.js & Discord.js (v14)
-- **AI Backend**: Groq API (Llama 3.3 70B & 3.2 Vision)
-- **Database**: MongoDB (Atlas)
-- **Web Dashboard**: Express.js & EJS
-- **Real-time Search**: Tavily API
+- **AI Backend**: Groq API (Llama 3.3 70B, 3.2 Vision, Whisper-v3)
+- **Database**: MongoDB Atlas (Cloud Persistence)
+- **Web Interface**: Express.js & EJS
+- **Real-time Engine**: Tavily Advanced Search
 
 ---
 
@@ -41,21 +43,20 @@ ZenTask AI is a state-of-the-art Discord bot that combines **Intelligent Task Ma
    ```
 
 2. **Configure your environment**:
-   Create a `.env` file and add the following keys:
+   Create a `.env` file and add the following keys (see `.env.example` for reference):
    ```env
    DISCORD_TOKEN=your_token
-   DISCORD_CLIENT_ID=your_id
    GROQ_API_KEY=your_key
-   TAVILY_API_KEY=your_search_key
-   MONGODB_URI=your_mongodb_atlas_string
+   TAVILY_API_KEY=your_key
+   MONGODB_URI=your_atlas_connection_string
    ```
 
-3. **Deploy the commands**:
+3. **Deploy the Slash Commands**:
    ```bash
    npm run deploy
    ```
 
-4. **Launch the bot**:
+4. **Launch the Masterpiece**:
    ```bash
    npm run start
    ```
@@ -63,19 +64,23 @@ ZenTask AI is a state-of-the-art Discord bot that combines **Intelligent Task Ma
 ---
 
 ## 📱 Slash Commands
-- `/task [add|list|done|delete|clear]` - Task management suite.
-- `/note [add|view|delete|clear]` - Personalized note-taking.
-- `/ocr-tasks [image]` - Convert photos to tasks.
-- `/ask [query] [image]` - Talk to the AI (supports visual inputs).
-- `/settings` - Personalize your bot experience.
-- `/help` - View complete documentation.
+| Command | Description |
+| --- | --- |
+| `/task [add|list|done|delete|clear]` | Full task management suite |
+| `/task shared-list` | Server-wide collaborative project list |
+| `/note [add|view|delete|clear]` | Personalized note-taking |
+| `/ocr-tasks [image]` | Extract and import tasks from physical photos |
+| `/ask [query] [image]` | AI Chat (supports Voice transcriptions) |
+| `/safety` | AI-powered channel toxicity & vibe audit |
+| `/search [query]` | Advanced real-time web search (Live Scores/News) |
+| `/settings` | Personalize your timezone and AI model |
 
 ---
 
-## 📊 Performance Dashboard
-Monitor your server's productivity in real-time at:
+## 📊 Productivity Dashboard
+Monitor your server's productivity metrics in real-time at:
 **[http://localhost:3000](http://localhost:3000)**
 
 ---
 Developed by **Shreyansh Tripathi**. 
-*Modernizing the way your community stays organized.*
+*Modernizing productivity, one interaction at a time.*
