@@ -4,13 +4,14 @@ const { EmbedBuilder } = require('discord.js');
 const { webSearch, formatResultsForGroq } = require('../../services/search/searchService');
 const { askGroq, getGroqUserErrorMessage } = require('../../services/ai/groqService');
 const { logError } = require('../../utils/logger');
+const { sendReply, deferReply } = require('../../utils/responseHelper');
 
-async function handleSearch(message, query) {
+async function handleSearch(context, query) {
   if (!query?.trim()) {
-    return message.reply('Please provide a search query. Example: `!search who won the IPL?`');
+    return sendReply(context, 'Please provide a search query. Example: `/search query: who won the IPL?`');
   }
 
-  await message.channel.sendTyping();
+  await deferReply(context);
 
   let results;
   try {
@@ -19,27 +20,31 @@ async function handleSearch(message, query) {
     logError('Search error:', error.response?.data || error.message);
 
     if (String(error.message).includes('No search API key')) {
-      return message.reply(
+      return sendReply(context, 
         'Web search is not configured.\n' +
         'Add `TAVILY_API_KEY` to your `.env` file and try again.'
       );
     }
 
-    return message.reply('Web search failed. Please try again later.');
+    return sendReply(context, 'Web search failed. Please try again later.');
   }
 
   if (!results.length) {
-    return message.reply(`No results found for: **${query}**`);
+    return sendReply(context, `No results found for: **${query}**`);
   }
 
-  const context = formatResultsForGroq(results);
-  const prompt = `Based on the following real-time web search results, answer this user question concisely and factually for a Discord chat.
-Do not make up information. Use only what is provided below.
+  const contextText = formatResultsForGroq(results);
+  const prompt = `You are a real-time information assistant. 
+Based on the following advanced web search results, answer the user's question with absolute factual accuracy.
+IF the user is asking for LIVE scores, stock prices, or current events, look for the MOST RECENT data in the snippets below.
+If the search results contain live data (like scores), report it directly.
 
-User question: "${query}"
+User Question: "${query}"
 
-Search results:
-${context}
+Search Results:
+${contextText}
+
+Answer concisely for a Discord chat. Format with bold keys if helpful.
 
 Write a clear, short summary in 3 to 6 sentences. Include source links if relevant.`;
 
@@ -71,7 +76,7 @@ Write a clear, short summary in 3 to 6 sentences. Include source links if releva
     .setFooter({ text: 'Real-time search via Tavily' })
     .setTimestamp();
 
-  return message.reply({ embeds: [embed] });
+  return sendReply(context, { embeds: [embed] });
 }
 
 module.exports = { handleSearch };

@@ -1,69 +1,97 @@
 // Task commands
 // This bot is designed by Shreyansh Tripathi.
-const db = require('../../storage/jsonStore');
-const { buildTaskListEmbed, buildSimpleEmbed } = require('../../utils/formatter');
+const db = require('../../storage/mongooseStore');
+const { getSuggestedCategory } = require('../../services/ai/groqService');
+const { buildSimpleEmbed, buildTaskListEmbed, buildTaskActionRow, buildTaskSelectMenu } = require('../../utils/formatter');
+const { sendReply } = require('../../utils/responseHelper');
 
-async function handleAddTask(message, taskText) {
-  if (!taskText || taskText.trim().length < 2) {
-    return message.reply('Please provide a task description. Example: `!addtask Buy groceries`');
-  }
+function getUserData(context) {
+  const user = context.author || context.user;
+  return { id: user.id, username: user.username };
+}
 
+async function handleAddTask(context, text) {
+  const { id } = getUserData(context);
+  const guildId = context.guild?.id || null;
+  
   try {
-    const task = db.addTask(message.author.id, taskText.trim());
+    const category = await getSuggestedCategory(text);
+    const task = await db.addTask(id, text, category, guildId);
+    
     const embed = buildSimpleEmbed(
       'success',
       'Task Added',
-      `**#${task.id}** - ${task.text}\n\nUse \`!tasks\` to view all your tasks.`
+      `**[${task.category}]** ${task.text}`
     );
-    return message.reply({ embeds: [embed] });
+    return sendReply(context, { embeds: [embed] });
   } catch (error) {
-    return message.reply(error.message);
+    return sendReply(context, buildSimpleEmbed('error', 'Limit Reached', error.message));
   }
 }
 
-async function handleViewTasks(message) {
-  const tasks = db.getTasksForUser(message.author.id);
-  const embed = buildTaskListEmbed(tasks, message.author.username);
-  return message.reply({ embeds: [embed] });
+async function handleViewTasks(context) {
+  const isShared = context.options?.getSubcommand() === 'shared-list';
+  const { id, username } = getUserData(context);
+  const guildId = isShared ? context.guild?.id : null;
+  
+  if (isShared && !context.guild) {
+    return sendReply(context, 'Shared lists are only available inside servers.');
+  }
+
+  const tasks = await db.getTasksForUser(id, guildId);
+  const title = isShared ? `Shared Project: ${context.guild.name}` : `${username}'s Tasks`;
+  const embed = buildTaskListEmbed(tasks, title);
+  
+  const components = [buildTaskActionRow()];
+  const selectMenu = buildTaskSelectMenu(tasks);
+  if (selectMenu) components.push(selectMenu);
+
+  return sendReply(context, { embeds: [embed], components });
 }
 
-async function handleDeleteTask(message, taskId) {
+async function handleDeleteTask(context, taskId) {
+  const { id } = getUserData(context);
+  
   if (!taskId || isNaN(taskId)) {
-    return message.reply('Please provide a valid task ID. Example: `!deletetask 2`');
+    return sendReply(context, 'Please provide a valid task ID. Example: `/task delete id: 2`');
   }
 
-  const removed = db.deleteTask(message.author.id, Number(taskId));
+  const removed = await db.deleteTask(id, Number(taskId));
   if (!removed) {
-    return message.reply(`No task with ID **#${taskId}** found. Use \`!tasks\` to see your list.`);
+    return sendReply(context, `No task with ID **#${taskId}** found. Use \`/task list\` to see your list.`);
   }
 
   const embed = buildSimpleEmbed('success', 'Task Deleted', `Removed: ~~${removed.text}~~`);
-  return message.reply({ embeds: [embed] });
+  return sendReply(context, { embeds: [embed] });
 }
 
-async function handleDoneTask(message, taskId) {
+async function handleDoneTask(context, taskId) {
+  const { id } = getUserData(context);
+  
   if (!taskId || isNaN(taskId)) {
-    return message.reply('Please provide a valid task ID. Example: `!donetask 2`');
+    return sendReply(context, 'Please provide a valid task ID. Example: `/task done id: 2`');
   }
 
-  const task = db.markTaskDone(message.author.id, Number(taskId));
+  const task = await db.markTaskDone(id, Number(taskId));
   if (!task) {
-    return message.reply(`No task with ID **#${taskId}** found. Use \`!tasks\` to see your list.`);
+    return sendReply(context, `No task with ID **#${taskId}** found. Use \`/task list\` to see your list.`);
   }
 
   const embed = buildSimpleEmbed('success', 'Task Completed!', `Great job! ~~${task.text}~~ is marked as done.`);
-  return message.reply({ embeds: [embed] });
+  return sendReply(context, { embeds: [embed] });
 }
 
-async function handleClearTasks(message) {
-  const tasks = db.getTasksForUser(message.author.id);
+async function handleClearTasks(context) {
+  const { id } = getUserData(context);
+  const tasks = await db.getTasksForUser(id);
+  
   if (tasks.length === 0) {
-    return message.reply('You have no tasks to clear.');
+    return sendReply(context, 'You have no tasks to clear.');
   }
 
-  db.clearTasks(message.author.id);
+  await db.clearTasks(id);
   const embed = buildSimpleEmbed('warn', 'All Tasks Cleared', `Removed **${tasks.length}** task(s). Fresh start!`);
-  return message.reply({
+  return sendReply(context, {
     content: `Cleared ${tasks.length} task(s).`,
     embeds: [embed],
   });

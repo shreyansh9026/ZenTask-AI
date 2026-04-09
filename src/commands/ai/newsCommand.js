@@ -2,9 +2,10 @@
 // This bot is designed by Shreyansh Tripathi.
 const { EmbedBuilder } = require('discord.js');
 const { askGroq, getGroqUserErrorMessage } = require('../../services/ai/groqService');
-const { webSearch } = require('../../services/search/searchService');
+const { webSearch, formatResultsForGroq } = require('../../services/search/searchService');
 const { buildGroqEmbed, buildSimpleEmbed } = require('../../utils/formatter');
 const { logError } = require('../../utils/logger');
+const { sendReply, deferReply } = require('../../utils/responseHelper');
 
 function buildNewsFallbackEmbed(results) {
   const description = results
@@ -19,52 +20,62 @@ function buildNewsFallbackEmbed(results) {
 
   return new EmbedBuilder()
     .setColor(0x00b4d8)
-    .setTitle('Latest News')
-    .setDescription(description || 'No live headlines were returned.')
-    .setFooter({ text: 'Live web results via Tavily' })
+    .setTitle('Latest Live News')
+    .setDescription(description || 'No live headlines were found.')
+    .setFooter({ text: 'Live web results via Tavily Advanced' })
     .setTimestamp();
 }
 
-async function handleNews(message) {
-  await message.channel.sendTyping();
+async function handleNews(context) {
+  await deferReply(context);
 
   try {
-    const prompt =
-      'Give me the 5 most important global news headlines right now. ' +
-      'Format each as: **[Category]** - Headline (one sentence summary). ' +
-      'Be concise. Do not add extra commentary.';
-
-    const answer = await askGroq(prompt);
-    const embed = buildGroqEmbed('Latest News Headlines', answer);
-    embed.setTitle('Latest News - Powered by Groq');
-
-    return message.reply({
-      content: `Latest news:\n${answer.slice(0, 1500)}`,
-      embeds: [embed],
-    });
-  } catch (error) {
-    logError('News command error:', error.response?.data || error.message);
-
-    try {
-      const results = await webSearch('latest global news headlines today', 5);
-
-      if (results.length) {
-        return message.reply({
-          content: 'Groq news is unavailable right now, so here are live web headlines instead:',
-          embeds: [buildNewsFallbackEmbed(results)],
-        });
-      }
-    } catch (fallbackError) {
-      logError('News fallback search error:', fallbackError.response?.data || fallbackError.message);
+    // Stage 1: Fetch live headlines from the web
+    const results = await webSearch('latest breaking news global headlines', 5);
+    
+    if (!results || results.length === 0) {
+      throw new Error('No news found from web search');
     }
 
-    const messageText = getGroqUserErrorMessage(error, 'news');
-    const embed = buildSimpleEmbed('error', 'News Unavailable', messageText);
+    // Stage 2: Let AI summarize the live findings
+    const contextText = formatResultsForGroq(results);
+    const prompt = `Based on these real-time search results, give me the 5 most important global news headlines right now.
+Format each as: **[Category]** - Headline (one sentence summary).
+Be concise. Ensure you are reporting the ACTUAL news from the results.
 
-    return message.reply({
-      content: messageText,
-      embeds: [embed],
-    });
+Search Results:
+${contextText}`;
+
+    const answer = await askGroq(prompt);
+    
+    // Create the premium response
+    const embed = buildGroqEmbed('Latest Live News', answer);
+    embed.setTitle('Breaking News - Live Updates');
+    embed.setFooter({ text: 'Summarized by Groq AI using Live Search' });
+
+    // Include sources in the description or as a separate field
+    const sources = results.map((r, i) => `[${i + 1}] [${r.title.slice(0, 40)}](${r.url})`).join(' | ');
+    embed.addFields({ name: 'Sources', value: sources.slice(0, 1024) });
+
+    return sendReply(context, { embeds: [embed] });
+
+  } catch (error) {
+    logError('News command error:', error.message);
+
+    const messageText = 'Live news is temporarily unavailable. Attempting to fetch raw headlines...';
+    try {
+      const fallbackResults = await webSearch('latest global news headlines', 5);
+      if (fallbackResults.length) {
+        return sendReply(context, {
+          embeds: [buildNewsFallbackEmbed(fallbackResults)],
+        });
+      }
+    } catch (e) {
+      logError('Final news failure:', e.message);
+    }
+
+    const embed = buildSimpleEmbed('error', 'News Unavailable', 'Could not fetch live updates. Please try again later.');
+    return sendReply(context, { embeds: [embed] });
   }
 }
 

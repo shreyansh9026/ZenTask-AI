@@ -1,8 +1,14 @@
 // Note commands
 // This bot is designed by Shreyansh Tripathi.
 const { EmbedBuilder } = require('discord.js');
-const db = require('../../storage/jsonStore');
-const { buildSimpleEmbed } = require('../../utils/formatter');
+const db = require('../../storage/mongooseStore');
+const { buildSimpleEmbed, buildNoteActionRow } = require('../../utils/formatter');
+const { sendReply } = require('../../utils/responseHelper');
+
+function getUserData(context) {
+  const user = context.author || context.user;
+  return { id: user.id, username: user.username };
+}
 
 function buildNoteListEmbed(notes, username) {
   const embed = new EmbedBuilder()
@@ -11,7 +17,7 @@ function buildNoteListEmbed(notes, username) {
     .setTimestamp();
 
   if (!notes.length) {
-    embed.setDescription('You have **no notes** yet.\nUse `!addnote <text>` to save one.');
+    embed.setDescription('You have **no notes** yet.\nUse `/note add` or `!addnote <text>` to save one.');
     return embed;
   }
 
@@ -21,53 +27,61 @@ function buildNoteListEmbed(notes, username) {
   return embed;
 }
 
-async function handleAddNote(message, noteText) {
+async function handleAddNote(context, noteText) {
+  const { id } = getUserData(context);
+  
   if (!noteText || noteText.trim().length < 2) {
-    return message.reply('Please provide note content. Example: `!addnote Meeting at 5pm`');
+    return sendReply(context, 'Please provide note content. Example: `/note add content: Meeting at 5pm`');
   }
 
   try {
-    const note = db.addNote(message.author.id, noteText.trim());
+    const note = await db.addNote(id, noteText.trim());
     const embed = buildSimpleEmbed(
       'success',
       'Note Saved',
-      `**#${note.id}** - ${note.text}\n\nUse \`!notes\` to view all your notes.`
+      `**#${note.id}** - ${note.text}\n\nUse \`/note view\` to view all your notes.`
     );
-    return message.reply({ embeds: [embed] });
+    return sendReply(context, { embeds: [embed] });
   } catch (error) {
-    return message.reply(error.message);
+    return sendReply(context, error.message);
   }
 }
 
-async function handleViewNotes(message) {
-  const notes = db.getNotesForUser(message.author.id);
-  const embed = buildNoteListEmbed(notes, message.author.username);
-  return message.reply({ embeds: [embed] });
+async function handleViewNotes(context) {
+  const { id, username } = getUserData(context);
+  const notes = await db.getNotesForUser(id);
+  const embed = buildNoteListEmbed(notes, username);
+  const row = buildNoteActionRow();
+  return sendReply(context, { embeds: [embed], components: [row] });
 }
 
-async function handleDeleteNote(message, noteId) {
+async function handleDeleteNote(context, noteId) {
+  const { id } = getUserData(context);
+  
   if (!noteId || isNaN(noteId)) {
-    return message.reply('Please provide a valid note ID. Example: `!deletenote 2`');
+    return sendReply(context, 'Please provide a valid note ID. Example: `/note delete id: 2`');
   }
 
-  const removed = db.deleteNote(message.author.id, Number(noteId));
+  const removed = await db.deleteNote(id, Number(noteId));
   if (!removed) {
-    return message.reply(`No note with ID **#${noteId}** found. Use \`!notes\` to see your list.`);
+    return sendReply(context, `No note with ID **#${noteId}** found. Use \`/note view\` to see your list.`);
   }
 
   const embed = buildSimpleEmbed('warn', 'Note Deleted', `Removed: ~~${removed.text}~~`);
-  return message.reply({ embeds: [embed] });
+  return sendReply(context, { embeds: [embed] });
 }
 
-async function handleClearNotes(message) {
-  const notes = db.getNotesForUser(message.author.id);
+async function handleClearNotes(context) {
+  const { id } = getUserData(context);
+  const notes = await db.getNotesForUser(id);
+  
   if (!notes.length) {
-    return message.reply('You have no notes to clear.');
+    return sendReply(context, 'You have no notes to clear.');
   }
 
-  db.clearNotes(message.author.id);
+  await db.clearNotes(id);
   const embed = buildSimpleEmbed('warn', 'All Notes Cleared', `Removed **${notes.length}** note(s).`);
-  return message.reply({
+  return sendReply(context, {
     content: `Cleared ${notes.length} note(s).`,
     embeds: [embed],
   });

@@ -29,7 +29,7 @@ async function tavilySearch(query, maxResults, apiKey) {
       api_key: apiKey,
       query,
       max_results: maxResults,
-      search_depth: 'basic',
+      search_depth: 'advanced',
       include_answer: false,
       include_raw_content: false,
     },

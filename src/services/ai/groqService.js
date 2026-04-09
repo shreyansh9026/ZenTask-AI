@@ -4,13 +4,14 @@ const axios = require('axios');
 
 const GROQ_URL = process.env.GROQ_API_URL || 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+const GROQ_VISION_MODEL = 'llama-3.2-11b-vision-preview';
 const API_KEY = process.env.GROQ_API_KEY;
 
 const SYSTEM_PROMPT = `You are an intelligent Discord assistant and task manager called GroqBot.
 You are helpful, concise, and friendly. Keep answers short and well-formatted for Discord.
 Use markdown sparingly and prefer plain text with occasional bold or bullet points.
 Never use giant walls of text. If a response needs to be long, break it into clear sections.
-You do NOT fetch real-time stock prices or live sports scores unless asked with full awareness of your training cutoff.`;
+You have access to real-time search results via tools - use them to provide up-to-date info.`;
 
 function extractGroqErrorDetails(error) {
   const responseData = error?.response?.data;
@@ -162,9 +163,108 @@ User message: "${message}"`;
   }
 }
 
+async function analyzeImage(imageUrl, prompt = 'What is in this image?') {
+  if (!API_KEY) {
+    throw new Error('GROQ_API_KEY is not set in .env');
+  }
+
+  const messages = [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: prompt },
+        {
+          type: 'image_url',
+          image_url: { url: imageUrl },
+        },
+      ],
+    },
+  ];
+
+  const response = await axios.post(
+    GROQ_URL,
+    {
+      model: GROQ_VISION_MODEL,
+      messages,
+      max_completion_tokens: 1024,
+      temperature: 0.5,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      timeout: 30_000,
+    }
+  );
+
+  return response.data?.choices?.[0]?.message?.content || 'I could not analyze this image.';
+}
+
+async function extractTasksFromImage(imageUrl) {
+  const prompt = `Look at this image very carefully. Identify all "to-do" items, tasks, or list items mentioned. 
+Return ONLY a JSON array of strings, where each string is a single task.
+Example: ["Buy milk", "Call John", "Finish report"]
+If no tasks are found, return an empty array [].
+Do not include any other text, markdown, or explanation.`;
+
+  const result = await analyzeImage(imageUrl, prompt);
+  
+  try {
+    const match = result.match(/\[.*\]/s);
+    if (match) {
+      return JSON.parse(match[0]);
+    }
+    return [];
+  } catch (err) {
+    console.error('Failed to parse OCR tasks:', err);
+    return [];
+  }
+}
+
+async function transcribeAudio(audioBuffer, filename = 'voice.ogg') {
+  if (!API_KEY) throw new Error('GROQ_API_KEY not set.');
+
+  const FormData = require('form-data');
+  const form = new FormData();
+  form.append('file', audioBuffer, filename);
+  form.append('model', 'whisper-large-v3');
+
+  const response = await axios.post(
+    'https://api.groq.com/openai/v1/audio/transcriptions',
+    form,
+    {
+      headers: {
+        ...form.getHeaders(),
+        Authorization: `Bearer ${API_KEY}`,
+      },
+      timeout: 30_000,
+    }
+  );
+
+  return response.data?.text || '';
+}
+
+async function getSuggestedCategory(taskText) {
+  const prompt = `Categorize this task into exactly ONE of these categories: Work, Personal, Shopping, Urgent, Finance, Health, Other.
+Task: "${taskText}"
+Respond with ONLY the category name.`;
+  
+  try {
+    const category = await askGroq(prompt, []);
+    return category.replace(/[^\w]/g, '').trim() || 'Other';
+  } catch {
+    return 'Other';
+  }
+}
+
 module.exports = {
   askGroq,
   classifyIntent,
+  analyzeImage,
+  extractTasksFromImage,
+  transcribeAudio,
+  getSuggestedCategory,
   extractGroqErrorDetails,
   getGroqUserErrorMessage,
 };

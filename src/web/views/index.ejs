@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZenTask AI | Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <span class="logo-icon">💠</span>
+                <h1>ZenTask<span>AI</span></h1>
+            </div>
+            <div class="status-badge">
+                <span class="status-dot"></span>
+                System Live
+            </div>
+        </header>
+
+        <main>
+            <section class="hero">
+                <h2>Intelligent Productivity</h2>
+                <p>Real-time analytics for your Discord workspace.</p>
+            </section>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-info">
+                        <h3>Total Tasks</h3>
+                        <p class="stat-value"><%= stats.taskCount %></p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">📝</div>
+                    <div class="stat-info">
+                        <h3>Quick Notes</h3>
+                        <p class="stat-value"><%= stats.noteCount %></p>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">🧠</div>
+                    <div class="stat-info">
+                        <h3>AI Sessions</h3>
+                        <p class="stat-value"><%= stats.historyCount %></p>
+                    </div>
+                </div>
+
+                <div class="stat-card highlight">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-info">
+                        <h3>Completion Rate</h3>
+                        <p class="stat-value"><%= stats.efficiency %>%</p>
+                    </div>
+                </div>
+            </div>
+
+            <section class="details">
+                <div class="card full-width">
+                    <h3>Overall Performance</h3>
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width: <%= stats.efficiency %>%"></div>
+                    </div>
+                    <p class="progress-text"><strong><%= stats.completedTasks %></strong> out of <strong><%= stats.taskCount %></strong> tasks successfully completed.</p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Designed by <strong>Shreyansh Tripathi</strong></p>
+            <p class="version">Build v2.4.0-Stable</p>
+        </footer>
+    </div>
+</body>
+</html>

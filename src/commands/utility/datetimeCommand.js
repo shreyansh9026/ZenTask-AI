@@ -1,11 +1,12 @@
 // Date and time command
 // This bot is designed by Shreyansh Tripathi.
 const { buildSimpleEmbed } = require('../../utils/formatter');
+const { sendReply } = require('../../utils/responseHelper');
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-function handleDatetime(message) {
+function handleDatetime(context) {
   const now = new Date();
   const day = DAYS[now.getDay()];
   const date = now.getDate();
@@ -27,7 +28,7 @@ function handleDatetime(message) {
     `**Time:** ${timeStr}\n**Date:** ${dateStr}`
   );
 
-  return message.reply({ embeds: [embed] });
+  return sendReply(context, { embeds: [embed] });
 }
 
 module.exports = { handleDatetime };

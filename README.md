@@ -1,119 +1,81 @@
-# GroqBot - AI Discord Assistant and Task Manager
+# 💠 ZenTask AI - Intelligent Discord Productivity Bot
+> Built with ❤️ by Shreyansh Tripathi
 
-Designed by Shreyansh Tripathi.
+ZenTask AI is a state-of-the-art Discord bot that combines **Intelligent Task Management**, **Personalized Notes**, and **AI Vision** into one seamless experience. Powered by Groq and Llama 3, it helps you stay organized through natural conversations and interactive UI.
 
-A Discord bot powered by Groq for chat, search summaries, reminders, tasks, notes, and news.
+---
 
-## Project Structure
+## ✨ Key Features
 
-```text
-bot/
-|-- logs/                         # Runtime logs
-|-- scripts/                      # Manual API test scripts
-|-- src/
-|   |-- commands/
-|   |   |-- ai/
-|   |   |   |-- generalQA.js
-|   |   |   |-- newsCommand.js
-|   |   |   `-- searchCommand.js
-|   |   |-- productivity/
-|   |   |   |-- noteCommands.js
-|   |   |   |-- reminderCommand.js
-|   |   |   `-- taskCommands.js
-|   |   `-- utility/
-|   |       `-- datetimeCommand.js
-|   |-- handlers/
-|   |   `-- messageHandler.js
-|   |-- services/
-|   |   |-- ai/
-|   |   |   `-- groqService.js
-|   |   `-- search/
-|   |       `-- searchService.js
-|   |-- storage/
-|   |   `-- jsonStore.js
-|   |-- utils/
-|   |   |-- formatter.js
-|   |   |-- intentParser.js
-|   |   |-- logger.js
-|   |   `-- runtimeLock.js
-|   `-- index.js
-|-- .env.example
-|-- package.json
-`-- README.md
-```
+### 🚀 Smart Productivity
+- **Interactive Task List**: Manage your cada with buttons and select menus. No more typing IDs.
+- **Natural Language Reminders**: Say `"Remind me in 10 mins to join the meeting"` and get notified.
+- **Personalized Notes**: Save quick ideas and notes that follow you everywhere.
 
-## Features
+### 🧠 Advanced AI & Vision
+- **Llama 3 Powered Q&A**: Context-aware AI that remembers your previous questions.
+- **Smart OCR (`/ocr-tasks`)**: Take a photo of a physical list and magically convert it into digital tasks.
+- **Image Analysis**: Upload screenshots or photos and ask questions about them using Llama 3.2 Vision.
 
-- General Q&A with Groq
-- Live web search summaries
-- Latest news with live fallback
-- Task management
-- Notes
-- Natural language reminders
-- Date and time command routing
+### 🌐 Management Suite
+- **Interactive Dashboard**: A premium web interface (`http://localhost:3000`) for real-time analytics and task tracking.
+- **User Personalization**: Set your own timezone, language, and preferred AI model using `/settings`.
+- **Global Search**: Search the web for real-time information with AI-powered summaries.
 
-## Setup
+---
 
-1. Install dependencies:
+## 🛠️ Tech Stack
+- **Engine**: Node.js & Discord.js (v14)
+- **AI Backend**: Groq API (Llama 3.3 70B & 3.2 Vision)
+- **Database**: MongoDB (Atlas)
+- **Web Dashboard**: Express.js & EJS
+- **Real-time Search**: Tavily API
 
-```bash
-npm install
-```
+---
 
-2. Copy the env template:
+## ⚙️ Installation & Setup
 
-```bash
-copy .env.example .env
-```
+1. **Clone the project** and install dependencies:
+   ```bash
+   npm install
+   ```
 
-3. Fill in these values:
+2. **Configure your environment**:
+   Create a `.env` file and add the following keys:
+   ```env
+   DISCORD_TOKEN=your_token
+   DISCORD_CLIENT_ID=your_id
+   GROQ_API_KEY=your_key
+   TAVILY_API_KEY=your_search_key
+   MONGODB_URI=your_mongodb_atlas_string
+   ```
 
-```env
-DISCORD_TOKEN=your_discord_bot_token_here
-DISCORD_CLIENT_ID=your_discord_client_id_here
-GROQ_API_KEY=your_groq_api_key_here
-GROQ_API_URL=https://api.groq.com/openai/v1/chat/completions
-GROQ_MODEL=llama-3.3-70b-versatile
-TAVILY_API_KEY=your_tavily_api_key_here
-SEARCH_PROVIDER=tavily
-BOT_PREFIX=!
-MAX_TASKS_PER_USER=20
-```
+3. **Deploy the commands**:
+   ```bash
+   npm run deploy
+   ```
 
-4. Run the bot:
+4. **Launch the bot**:
+   ```bash
+   npm run start
+   ```
 
-```bash
-npm start
-```
+---
 
-## Useful Scripts
+## 📱 Slash Commands
+- `/task [add|list|done|delete|clear]` - Task management suite.
+- `/note [add|view|delete|clear]` - Personalized note-taking.
+- `/ocr-tasks [image]` - Convert photos to tasks.
+- `/ask [query] [image]` - Talk to the AI (supports visual inputs).
+- `/settings` - Personalize your bot experience.
+- `/help` - View complete documentation.
 
-```bash
-npm run dev
-npm run test:groq
-npm run test:search
-```
+---
 
-## Commands
+## 📊 Performance Dashboard
+Monitor your server's productivity in real-time at:
+**[http://localhost:3000](http://localhost:3000)**
 
-- `!help`
-- `!ping`
-- `!time`
-- `!date`
-- `!addtask <text>`
-- `!tasks`
-- `!donetask <id>`
-- `!deletetask <id>`
-- `!cleartasks`
-- `!addnote <text>`
-- `!notes`
-- `!deletenote <id>`
-- `!clearnotes`
-- `!search <query>`
-- `!news`
-- `!remind me in 10 minutes to call Alice`
-
-## Logging
-
-- App logs are written to `logs/bot-debug.log`
-- Runtime lock is stored in `data/bot.lock`
+---
+Developed by **Shreyansh Tripathi**. 
+*Modernizing the way your community stays organized.*

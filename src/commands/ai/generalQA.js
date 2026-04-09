@@ -1,50 +1,58 @@
 // General AI Q&A command
 // This bot is designed by Shreyansh Tripathi.
-const { askGroq, getGroqUserErrorMessage } = require('../../services/ai/groqService');
+const { askGroq, analyzeImage, getGroqUserErrorMessage } = require('../../services/ai/groqService');
 const { buildGroqEmbed, buildSimpleEmbed } = require('../../utils/formatter');
+const { sendReply, deferReply } = require('../../utils/responseHelper');
+const db = require('../../storage/mongooseStore');
 
-const conversationHistory = new Map();
-const MAX_HISTORY = 10;
-
-function getHistory(userId) {
-  return conversationHistory.get(userId) || [];
-}
-
-function updateHistory(userId, role, content) {
-  const history = getHistory(userId);
-  history.push({ role, content });
-
-  if (history.length > MAX_HISTORY) {
-    history.splice(0, history.length - MAX_HISTORY);
+async function handleGeneralQA(context, query, imageUrl = null) {
+  // If no imageUrl provided analytically, check if context is a regular message with attachments
+  if (!imageUrl && context.attachments?.size > 0) {
+    const firstAttach = context.attachments.first();
+    if (firstAttach.contentType?.startsWith('image/')) {
+      imageUrl = firstAttach.url;
+    }
   }
 
-  conversationHistory.set(userId, history);
-}
+  await deferReply(context);
 
-async function handleGeneralQA(message, query) {
-  await message.channel.sendTyping();
-
-  const userId = message.author.id;
-  const history = getHistory(userId);
+  const userId = context.author?.id || context.user?.id;
+  const history = await db.getChatHistory(userId);
 
   try {
-    const answer = await askGroq(query, history);
+    let answer;
+    
+    if (imageUrl) {
+      // Use Vision model if image is present
+      answer = await analyzeImage(imageUrl, query);
+    } else {
+      // Regular text model
+      answer = await askGroq(query, history);
+    }
 
-    updateHistory(userId, 'user', query);
-    updateHistory(userId, 'assistant', answer);
+    // Update and save history
+    history.push({ role: 'user', content: query });
+    history.push({ role: 'assistant', content: answer });
+    await db.saveChatHistory(userId, history);
 
     const embed = buildGroqEmbed(query, answer);
-    return message.reply({ embeds: [embed] });
+    
+    if (imageUrl) {
+      embed.setImage(imageUrl);
+      embed.setFooter({ text: 'Analyzed using Llama 3.2 Vision' });
+    }
+
+    return sendReply(context, { embeds: [embed] });
   } catch (error) {
     console.error('Groq Q&A error:', error.response?.data || error.message);
 
     const embed = buildSimpleEmbed(
       'error',
       'AI Unavailable',
-      getGroqUserErrorMessage(error, 'AI replies')
+      getGroqUserErrorMessage(error, imageUrl ? 'Image Analysis' : 'AI replies')
     );
 
-    return message.reply({ embeds: [embed] });
+    return sendReply(context, { embeds: [embed] });
   }
 }
 

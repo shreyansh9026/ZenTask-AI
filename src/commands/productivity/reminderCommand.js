@@ -1,21 +1,22 @@
 // Reminder commands
 // This bot is designed by Shreyansh Tripathi.
-const db = require('../../storage/jsonStore');
+const db = require('../../storage/mongooseStore');
 const { buildSimpleEmbed } = require('../../utils/formatter');
 const { parseReminderText } = require('../../utils/intentParser');
 const { logError, logInfo } = require('../../utils/logger');
+const { sendReply } = require('../../utils/responseHelper');
 
 const activeJobs = new Map();
 
-function restoreReminders(client) {
-  const reminders = db.getReminders();
+async function restoreReminders(client) {
+  const reminders = await db.getReminders();
   const now = Date.now();
 
   for (const reminder of reminders) {
     const remaining = reminder.fireAt - now;
     if (remaining <= 0) {
       fireReminder(client, reminder);
-      db.deleteReminder(reminder.id);
+      await db.deleteReminder(reminder.id);
     } else {
       scheduleJob(client, reminder);
     }
@@ -34,7 +35,7 @@ function scheduleJob(client, reminder) {
 
   const timeout = setTimeout(async () => {
     await fireReminder(client, reminder);
-    db.deleteReminder(reminder.id);
+    await db.deleteReminder(reminder.id);
     activeJobs.delete(reminder.id);
   }, delay);
 
@@ -56,26 +57,28 @@ async function fireReminder(client, reminder) {
   }
 }
 
-async function handleReminder(client, message, text) {
+async function handleReminder(client, context, text) {
   const parsed = parseReminderText(text);
+  const userId = context.author?.id || context.user?.id;
 
   if (!parsed) {
-    return message.reply(
-      'I could not understand the reminder time.\n' +
-      'Try: `!remind me in 10 minutes to call Alice` or `!remind me at 3:30 PM to submit report`'
-    );
+    const example = context.isCommand?.() 
+      ? 'Try: `/remind when:in 10 minutes message:call Alice`'
+      : 'Try: `!remind me in 10 minutes to call Alice`';
+      
+    return sendReply(context, `I could not understand the reminder time.\n${example}`);
   }
 
   const { minutes, label } = parsed;
 
   if (minutes < 1 || minutes > 10_080) {
-    return message.reply('Reminder time must be between **1 minute** and **7 days**.');
+    return sendReply(context, 'Reminder time must be between **1 minute** and **7 days**.');
   }
 
   const fireAt = Date.now() + minutes * 60_000;
-  const reminder = db.addReminder({
-    userId: message.author.id,
-    channelId: message.channel.id,
+  const reminder = await db.addReminder({
+    userId: userId,
+    channelId: context.channel.id,
     label,
     fireAt,
   });
@@ -92,7 +95,7 @@ async function handleReminder(client, message, text) {
     `I will remind you in **${readableTime}**:\n> **${label}**`
   );
 
-  return message.reply({ embeds: [embed] });
+  return sendReply(context, { embeds: [embed] });
 }
 
 module.exports = { handleReminder, restoreReminders };

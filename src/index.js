@@ -4,7 +4,11 @@ require('dotenv').config();
 
 const path = require('path');
 const { Client, GatewayIntentBits, Partials } = require('discord.js');
+const mongoose = require('mongoose');
 const { handleMessage } = require('./handlers/messageHandler');
+const { handleInteraction } = require('./handlers/interactionHandler');
+const db = require('./storage/mongooseStore');
+const { startWebServer } = require('./web/server');
 const { acquireRuntimeLock, releaseRuntimeLock } = require('./utils/runtimeLock');
 const { appendLogLine, formatError, isBrokenPipeError, logError, logInfo } = require('./utils/logger');
 
@@ -35,12 +39,12 @@ const client = new Client({
   partials: [Partials.Channel],
 });
 
-client.once('clientReady', () => {
+client.once('ready', () => {
   log(`Bot online as ${client.user.tag}`);
   log(`Serving ${client.guilds.cache.size} server(s):`);
   client.guilds.cache.forEach((guild) => log(`- ${guild.name} (${guild.id})`));
   log('');
-  client.user.setActivity('your tasks | !help', { type: 3 });
+  client.user.setActivity('your tasks | /help', { type: 3 });
 });
 
 client.on('messageCreate', (message) => {
@@ -52,6 +56,13 @@ client.on('messageCreate', (message) => {
 
   handleMessage(client, message).catch((error) => {
     logError(`Unhandled message handler failure: ${formatError(error)}`);
+  });
+});
+
+client.on('interactionCreate', (interaction) => {
+  console.log(`[Raw Interaction] Received: ${interaction.id} | Type: ${interaction.type}`);
+  handleInteraction(client, interaction).catch((error) => {
+    logError(`Unhandled interaction failure: ${formatError(error)}`);
   });
 });
 
@@ -89,6 +100,9 @@ process.on('uncaughtException', (error) => {
 
 function shutdown(signal) {
   log(`Received ${signal}. Releasing runtime lock and shutting down.`);
+  if (mongoose.connection) {
+    mongoose.connection.close();
+  }
   releaseRuntimeLock();
   process.exit(0);
 }
@@ -97,8 +111,19 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGBREAK', () => shutdown('SIGBREAK'));
 
-client.login(process.env.DISCORD_TOKEN).catch((error) => {
-  logError(`Failed to login: ${formatError(error)}`);
-  releaseRuntimeLock();
-  process.exit(1);
-});
+(async () => {
+  // 1. Start web dashboard immediately
+  const port = process.env.PORT || 3000;
+  startWebServer(port);
+  log(`[Web] Dashboard intended for http://localhost:${port}`);
+
+  // 2. Connect to Database
+  await db.connect();
+  
+  // 3. Login to Discord
+  client.login(process.env.DISCORD_TOKEN).catch((error) => {
+    logError(`Failed to login: ${formatError(error)}`);
+    releaseRuntimeLock();
+    process.exit(1);
+  });
+})();

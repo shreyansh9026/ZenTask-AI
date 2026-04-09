@@ -1,6 +1,6 @@
 // src/utils/formatter.js - Discord message formatting helpers
 // This bot is designed by Shreyansh Tripathi.
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 const COLORS = {
   success: 0x57f287,
@@ -22,15 +22,34 @@ function buildTaskListEmbed(tasks, username) {
   }
 
   const lines = tasks.map((task) => {
-    const status = task.done ? '[done]' : '[todo]';
-    return `${status} **#${task.id}** - ${task.done ? `~~${task.text}~~` : task.text}`;
+    const statusIcon = task.done ? '✅' : '⏳';
+    const categoryTag = task.category ? `\`[${task.category}]\` ` : '';
+    return `${statusIcon} **${task.id}.** ${categoryTag}${task.done ? `~~${task.text}~~` : task.text}`;
   });
 
   embed.setDescription(lines.join('\n'));
   embed.setFooter({
-    text: `${tasks.filter((task) => !task.done).length} pending - ${tasks.filter((task) => task.done).length} done`,
+    text: `${tasks.filter((item) => !item.done).length} pending - ${tasks.filter((item) => item.done).length} done`,
   });
   return embed;
+}
+
+function buildTaskSelectMenu(tasks) {
+  const pendingTasks = tasks.filter((t) => !t.done).slice(0, 25);
+  if (pendingTasks.length === 0) return null;
+
+  return new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId('task_mark_done_menu')
+      .setPlaceholder('Select a task to mark as Done')
+      .addOptions(
+        pendingTasks.map((t) => ({
+          label: t.text.slice(0, 100),
+          description: `Task ID #${t.id}`,
+          value: t.id.toString(),
+        }))
+      )
+  );
 }
 
 function buildSimpleEmbed(color, title, description) {
@@ -115,4 +134,42 @@ function buildHelpEmbed(prefix) {
     .setTimestamp();
 }
 
-module.exports = { buildTaskListEmbed, buildSimpleEmbed, buildGroqEmbed, buildHelpEmbed };
+function buildTaskActionRow() {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('task_list_refresh')
+      .setLabel('Refresh')
+      .setEmoji('🔄')
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId('task_clear_all')
+      .setLabel('Clear All')
+      .setEmoji('🗑️')
+      .setStyle(ButtonStyle.Danger)
+  );
+}
+
+function buildNoteActionRow() {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('note_list_refresh')
+      .setLabel('Refresh List')
+      .setEmoji('🔄')
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId('note_clear_all')
+      .setLabel('Remove All')
+      .setEmoji('🧹')
+      .setStyle(ButtonStyle.Danger)
+  );
+}
+
+module.exports = {
+  buildTaskListEmbed,
+  buildSimpleEmbed,
+  buildGroqEmbed,
+  buildHelpEmbed,
+  buildTaskActionRow,
+  buildNoteActionRow,
+  buildTaskSelectMenu,
+};

@@ -61,11 +61,26 @@ async function handleMessage(client, message) {
   try {
     // ── Step 1: Rule-based intent detection ──────────────────────────────────
     const content = message.content.trim();
-    if (!content) return;
+    
+    // Check for voice notes/audio attachments
+    if (message.attachments.size > 0 && !content) {
+      const audio = message.attachments.find(a => 
+        a.contentType?.includes('audio/') || 
+        a.name?.endsWith('.ogg') || 
+        a.name?.endsWith('.wav') || 
+        a.name?.endsWith('.mp3')
+      );
+
+      if (audio) {
+        return await handleVoiceNote(client, message, audio);
+      }
+    }
+
+    if (!content && message.attachments.size === 0) return;
 
     // Restore reminders once on first message
     if (!remindersRestored) {
-      restoreReminders(client);
+      await restoreReminders(client);
       remindersRestored = true;
     }
 
@@ -166,6 +181,35 @@ async function handleMessage(client, message) {
     );
 
     return message.reply({ embeds: [embed] }).catch(() => {});
+  }
+}
+
+async function handleVoiceNote(client, message, attachment) {
+  try {
+    const axios = require('axios');
+    const { transcribeAudio } = require('../services/ai/groqService');
+    
+    await message.channel.sendTyping();
+    const response = await axios.get(attachment.url, { responseType: 'arraybuffer' });
+    const buffer = Buffer.from(response.data);
+    
+    const transcription = await transcribeAudio(buffer, attachment.name);
+    
+    if (!transcription || transcription.trim().length < 3) {
+      return message.reply('I heard some audio, but I couldn\'t make out any clear text.');
+    }
+
+    const embed = buildSimpleEmbed(
+      'info',
+      'Voice Transcription',
+      `🗣️ **I heard:** "${transcription}"\n\nI'm adding this to your tasks...`
+    );
+    await message.reply({ embeds: [embed] });
+
+    return await taskCmds.handleAddTask(message, transcription);
+  } catch (error) {
+    logError('Voice transcription error:', error);
+    return message.reply('Something went wrong while listening to your voice note.');
   }
 }
 
